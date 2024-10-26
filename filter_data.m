@@ -1,3 +1,4 @@
+% matlab script to process bus dataset from https://www.njtransit.com/hackru-fall-2024
 routes = readtable("routes.xlsx");
 stops = readtable("stops.txt");
 
