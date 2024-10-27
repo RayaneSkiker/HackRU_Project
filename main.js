@@ -16,11 +16,34 @@ for (const i of DATA) {
 	bounds.extend(L.latLng(i.stop_lat, i.stop_lon));
 }
 map.setMaxBounds(bounds.pad(0.20));
-// group.addTo(map);
 
-// "snake" portion
+// game portion
+
+class Stop {
+	constructor(lat, lon) {
+		this.latLon = L.latLng(lat, lon);
+		this.passengers = 0;
+	}
+
+	collides(latLon) {
+		return this.latLon.distanceTo(latLon) <= 1;
+	}
+
+	add_passengers(int) {
+		this.passengers += int;
+	}
+
+	sub_passengers(int) {
+		this.passengers -= int;
+		if (this.passengers < 0) {
+			this.passengers = 0;
+		}
+	}
+}
+
 const SIZE = 5;
 let parts = [L.latLng(start.stop_lat, start.stop_lon)];
+let stops = DATA.map(i => new Stop(i.stop_lat, i.stop_lon));
 let direction = "";
 let length = 0;
 
@@ -66,6 +89,34 @@ function update() {
 	}
 }
 
+function random_range(min, max) {
+	return Math.random() * (max - min) + min;
+}
+
+let pass_group = L.layerGroup();
+pass_group.addTo(map);
+function update_passengers() {
+	pass_group.clearLayers();
+	for (let stop of stops) {
+		let add = Math.random() > 0.5
+		if (Math.random() > 0.4) {
+			stop.add_passengers(Math.random() * 4);
+		} else {
+			stop.sub_passengers(Math.random() * 3);
+		}
+		for (let i = 0; i < stop.passengers; i++) {
+			let bounds = stop.latLon.toBounds(Math.random() * 7);
+			let lat = random_range(bounds.getSouth(), bounds.getNorth());
+			let lon = random_range(bounds.getWest(), bounds.getEast());
+			pass_group.addLayer(L.circle([lat, lon], {
+				radius: 1,
+				color: "red",
+			}));
+		}
+	}
+}
+
 map.on("keypress", handle_key);
 setInterval(update, 200);
+setInterval(update_passengers, 5000);
 
