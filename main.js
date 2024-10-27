@@ -73,10 +73,12 @@ function update() {
 
 	for (let stop of stops) {
 		if (stop.collides(parts[0])) {
-			// TODO: tweak later
 			stop.sweeped = true;
-			parts.push(L.latLng(0, 0));
-			stop.passengers = 0;
+			let amount = Math.floor(Math.random() * stop.passengers);
+			stop.sub_passengers(amount);
+			for (let i = 0; i < amount; i++) {
+				parts.push(L.latLng(0, 0));
+			}
 		}
 	}
 
@@ -134,5 +136,5 @@ function update_passengers() {
 
 map.on("keypress", handle_key);
 setInterval(update, 200);
-setInterval(update_passengers, 10000);
+setInterval(update_passengers, 7500);
 
