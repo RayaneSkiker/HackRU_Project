@@ -1,7 +1,8 @@
 import { DATA, GEOJSON } from "./data.js";
 
+let random_stop = (data) => data[Math.floor(Math.random() * data.length)];
 // set up the map
-let start = DATA[Math.floor(Math.random() * DATA.length)];
+let start = random_stop(DATA);
 let map = L.map("map", { zoomControl: false, maxBoundsViscosity: 1.0 }).setView([start.stop_lat, start.stop_lon], 19);
 L.tileLayer("https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png", {
 	maxZoom: 19,
@@ -45,6 +46,7 @@ class Stop {
 const SIZE = 5;
 let parts = [L.latLng(start.stop_lat, start.stop_lon)];
 let stops = DATA.map(i => new Stop(i.stop_lat, i.stop_lon));
+let destination = random_stop(stops);
 let direction = "";
 
 // find distance needed between boxes for drawing
@@ -74,9 +76,21 @@ function update() {
 	for (let stop of stops) {
 		if (stop.collides(parts[0])) {
 			stop.sweeped = true;
-			let amount = Math.floor(Math.random() * stop.passengers);
-			stop.sub_passengers(amount);
-			for (let i = 0; i < amount; i++) {
+
+			let max = 2;
+			// "hotspots" for dropping passengers off
+			if (stop == destination) {
+				max = parts.length / 3;
+				destination = random_stop(stops);
+			}
+			let outBus = Math.floor(Math.random() * max);
+			for (let i = 0; i < outBus, parts.length > 1; i++) {
+				parts.pop();
+			}
+
+			let inBus = Math.floor(Math.random() * stop.passengers);
+			stop.sub_passengers(inBus);
+			for (let i = 0; i < inBus; i++) {
 				parts.push(L.latLng(0, 0));
 			}
 		}
@@ -96,7 +110,6 @@ function update() {
 		case "west":  parts[0].lng -= distance * 1.4; break;
 	}
 
-	console.log(parts);
 	// render
 	map.panTo(parts[0]);
 	for (const i of parts) {
@@ -104,6 +117,13 @@ function update() {
 			group.addLayer(L.rectangle(i.toBounds(SIZE)));
 		}
 	}
+
+	// line connecting parts
+	let part_line = L.polyline(parts);
+	group.addLayer(part_line);
+
+	let destination_line = L.polyline([parts[0], destination.latLon], { color: "orange" });
+	group.addLayer(destination_line);
 }
 
 function random_range(min, max) {
@@ -116,9 +136,9 @@ function update_passengers() {
 	pass_group.clearLayers();
 	for (let stop of stops) {
 		stop.sweeped = false;
-		let add = Math.random() > 0.5
+		// simulate more passengers coming in than leaving
 		if (Math.random() > 0.4) {
-			stop.add_passengers(Math.random() * 4);
+			stop.add_passengers(Math.random() * 6);
 		} else {
 			stop.sub_passengers(Math.random() * 3);
 		}
