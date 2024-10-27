@@ -23,10 +23,11 @@ class Stop {
 	constructor(lat, lon) {
 		this.latLon = L.latLng(lat, lon);
 		this.passengers = 0;
+		this.sweeped = false;
 	}
 
 	collides(latLon) {
-		return this.latLon.distanceTo(latLon) <= 1;
+		return this.latLon.distanceTo(latLon) <= 3 && this.passengers > 0 && !this.sweeped;
 	}
 
 	add_passengers(int) {
@@ -45,7 +46,6 @@ const SIZE = 5;
 let parts = [L.latLng(start.stop_lat, start.stop_lon)];
 let stops = DATA.map(i => new Stop(i.stop_lat, i.stop_lon));
 let direction = "";
-let length = 0;
 
 // find distance needed between boxes for drawing
 let center = L.latLng(0, 0);
@@ -70,10 +70,23 @@ let group = L.layerGroup();
 group.addTo(map);
 function update() {
 	group.clearLayers();
-	// move snake parts
-	for (const i = parts.len - 1; i > 0; i--) {
-		parts[i] = parts[i - 1];
+
+	for (let stop of stops) {
+		if (stop.collides(parts[0])) {
+			// TODO: tweak later
+			stop.sweeped = true;
+			parts.push(L.latLng(0, 0));
+			stop.passengers = 0;
+		}
 	}
+
+	// move snake parts
+	for (let i = parts.length - 1; i > 0; i--) {
+		console.log(i + ": " + parts[i]);
+		parts[i].lat = parts[i - 1].lat;
+		parts[i].lng = parts[i - 1].lng;
+	}
+
 	switch(direction) {
 		case "north": parts[0].lat += distance; break;
 		case "east":  parts[0].lng += distance * 1.4; break;
@@ -81,11 +94,13 @@ function update() {
 		case "west":  parts[0].lng -= distance * 1.4; break;
 	}
 
-
+	console.log(parts);
 	// render
 	map.panTo(parts[0]);
 	for (const i of parts) {
-		group.addLayer(L.rectangle(i.toBounds(SIZE)));
+		if (i) {
+			group.addLayer(L.rectangle(i.toBounds(SIZE)));
+		}
 	}
 }
 
@@ -98,6 +113,7 @@ pass_group.addTo(map);
 function update_passengers() {
 	pass_group.clearLayers();
 	for (let stop of stops) {
+		stop.sweeped = false;
 		let add = Math.random() > 0.5
 		if (Math.random() > 0.4) {
 			stop.add_passengers(Math.random() * 4);
@@ -118,5 +134,5 @@ function update_passengers() {
 
 map.on("keypress", handle_key);
 setInterval(update, 200);
-setInterval(update_passengers, 5000);
+setInterval(update_passengers, 10000);
 
